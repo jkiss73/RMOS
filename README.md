@@ -4,7 +4,8 @@
 [Project Status](#Project-Status)\
 [Project Goals](#Project-Goals)\
 [Development Roadmap](#Development-Roadmap)\
-[Build,Development Tools and Executing](#Build,Development-Tools-and-Executing)
+[Development Tools](#Development-Tools)\
+[Building and Executing](#Building-and-Executing)
 
 
 # Project Status
@@ -53,14 +54,16 @@ Imagine a world where you bought your computer and never had to upgrade the oper
 # Development Roadmap
 **Under Construction**
 
-# Build,Development Tools and Executing
-
+# Development Tools
 *Compiler Toolchain* - **CC65 & GNU Make**
 *Emulator* : **VICE**
 
 *Not necessary but ***C64 Studio*** is a great tool to assist debugging bits of assembly code*  
 
 Host development system: MS-Windows (10/11) , comming soon Linux (Ubuntu)  
+
+# Building and Executing
+
 
 ## How to build
 
