@@ -1,5 +1,16 @@
 # e**X**treme **T**erminal **C**ommunication for 8 bit retro computers
  
+**Table of Contents**\
+[Project Status](#Project-Status)\
+[Project Goals](#Project-Goals)\
+[Development Roadmap](#Development-Roadmap)\
+[Build,Development Tools and Executing](#Build,Development-Tools-and-Executing)
+
+
+# Project Status
+
+# Project Overview
+
 My first home computer was a Commodore 64 and when it came to programming it I was basically self taught. I was 12 with no access to online forums or local clubs, the 1980s was not as connected as we are today.  Books and magazines were limited to me so word of mouth through friends and school mates plus trial and error was all I had. However the doors really kicked open when I got a 300 baud modem for Christmas in 1986.   
 
 Four decades later I aked myself a question. "If I knew then what I know now what would I do?"
@@ -42,7 +53,7 @@ Imagine a world where you bought your computer and never had to upgrade the oper
 # Development Roadmap
 **Under Construction**
 
-# Development Tools and Hosts
+# Build,Development Tools and Executing
 
 *Compiler Toolchain* - **CC65 & GNU Make**
 *Emulator* : **VICE**
@@ -51,7 +62,7 @@ Imagine a world where you bought your computer and never had to upgrade the oper
 
 Host development system: MS-Windows (10/11) , comming soon Linux (Ubuntu)  
 
-# How to build
+## How to build
 
 Currently only the C64 is supported. 
 
@@ -66,7 +77,5 @@ Type make.
 ### Execute on VICE 
 GTK3VICE-3.8-win64\bin\x64sc.exe -kernal kernel.bin
 
-### Execute on Target
+## Execute on Target
 
-
-utilizing as much of the computers resources and
