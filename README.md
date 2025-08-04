@@ -1,4 +1,4 @@
-# e**X**treme **T**erminal **C**ommunication for 8 bit retro computers
+# **R**etro **M**od **O**perating **S**ystem (RMOS) for 8 bit retro computers
  
 **Table of Contents**\
 [Project Status](#Project-Status)\
