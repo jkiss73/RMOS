@@ -1,0 +1,75 @@
+# ******************************************************************************************************************
+# File : Makefile.rules
+#
+# Description: Make rules for building Retro Mod OS    
+#  AFLAGS				= Assembler compiler flags
+#  CFLAGS				= C compiler flags
+#  INCLUDE				= Common include paths for both C and Assembler compilers 
+#  LDFLAGS				= Linker flags
+#  LIBS					= List of libraries to use during the linking stage
+#  LD_CFG				= Linker configuration script (if not defined is ld-$(TARGET).cfg)
+#  TARGET_BUILD_DIR		= Default location of where to put build outputs for the target (under build/ directory)
+#  BUILD_DIR			= Folder to plade all outputs from a build
+#  PROJECT_INCLUDE_DIR	= The projects include directory for both assembly and c compilers
+#  TARGET_LIB_DIR		= The projects library directory for linking
+#  LD_LIST_FILE			= If not defined the full path for a builds listing file
+#  LD_MAP_FILE			= If not defined the full path for a builds map file
+#
+# Author(s) : John Kiss
+#
+# Copyright (c) 2026-Present, John Kiss All rights reserved.
+# This source code is licensed under the BSD-style license found in the LICENSE file 
+# in the root directory of this source tree.
+# ******************************************************************************************************************
+CC	= cc65
+AS	= ca65
+LD	= ld65
+AR	= ar65
+
+TARGET_BUILD_DIR ?= $(TOP)/build/$(TARGET)
+BUILD_DIR ?= $(TARGET_BUILD_DIR)/$(BUILD_NAME)
+PROJECT_INCLUDE_DIR ?= $(TOP)/include
+TARGET_LIB_DIR ?= $(TOP)/lib/$(TARGET)
+LD_LIST_FILE ?= $(TARGET_BUILD_DIR)/$(BUILD_NAME).lst
+LD_MAP_FILE ?= $(TARGET_BUILD_DIR)/$(BUILD_NAME).map
+
+# If not defined yet, use the default Linker Configuation file name based on the target name
+LD_CFG ?= ld-$(TARGET).cfg
+
+ifeq ($(TARGET), c64)
+AFLAGS += -t c64 
+CFLAGS += -t c64
+endif
+
+ifdef C_STATIC_LOCALS
+CFLAGS += -Cl 
+endif
+
+ifeq ($(BUILD_TYPE),debug)
+CFLAGS += -g
+AFLAGS += -g
+endif
+
+CFLAGS += -O 
+
+AFLAGS += 
+LDFLAGS += 
+
+LIBS +=
+INCLUDE += -I $(PROJECT_INCLUDE_DIR) -I $(TOOLCHAIN_PATH)/asminc -I $(PROJECT_INCLUDE_DIR)\$(TARGET)
+
+%.o: %.s
+	$(AS) $(AFLAGS) $(INCLUDE) -o $@ $<
+
+%.o: %.asm
+	$(AS) $(AFLAGS) $(INCLUDE) -o $@ $<
+
+%.asm: %.c
+	$(CC) $(CFLAGS) $(INCLUDE) -o $@ $<
+
+target-build-dir:
+	mkdir -p $(TARGET_BUILD_DIR)
+
+build-dir:
+	mkdir -p $(TARGET_BUILD_DIR)
+

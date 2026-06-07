@@ -1,0 +1,6 @@
+Release v0.1.0 - Boot strap kernel for target system C64 
+    - Initial build system - kernel build only
+    - Initialize C64 devices
+    - Simple console input/output
+    - Kernel task captures keyboard input and puts it to the screen
+    - Multi source interrupt handler - handles only CIA Timer A   
