@@ -138,15 +138,16 @@ kb_s_column_last  .byte $00                                 ; End of table
 
 
 .if .defined(VER_MAJOR) && .defined(VER_MIN) && .defined(VER_BUILD)
-kernel_msg 			.asciiz  .sprintf("retro-mod c64 bootstrap kernel v%d.%d.%d\n\n",VER_MAJOR, VER_MIN, VER_BUILD)
+kernel_msg 			.asciiz  .sprintf("retro-mod os c64 v%d.%d.%d\n\n",VER_MAJOR, VER_MIN, VER_BUILD)
 .else
-kernel_msg 			.asciiz  .sprintf("retro-mod c64 bootstrap kernel\n\n")
+kernel_msg 			.asciiz  .sprintf("retro-mod os c64\n\n")
 .endif
 
 starting_msg 		.asciiz "kernel init "
+shelldos_task_init 	.asciiz "starting dos\n"
+sched_preempt_msg	.asciiz "preemption enabled\n"
 ready_msg 			.asciiz "\ngo time!\n"
 
-input_prompt		.asciiz "\nRMOS :>"
 
 
 

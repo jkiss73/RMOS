@@ -24,7 +24,7 @@
 .define VidMemoryBase       $0400           ; Start of the 1k VIC SCREEN Memory 
 .define SystemShellAddr     $A000           ; Starting address of the System Shell applications
 
-.define dflt_stack_addr     $FF             ; Default top of stack
+.define dflt_stack_addr     $20             ; Default top of stack
 
 ; CIA #1 and #2 registers
 ; ***************************************
@@ -38,7 +38,7 @@
 ; Console driver defines
 ; **************************************
 .define blink_rate                      $05
-.define type_rate                       $07
+.define type_rate                       $05
 
 .define scr_nlines                      25          ; Screen Rows
 .define scr_linelen                     40          ; Screen Line Length
@@ -47,8 +47,84 @@
 .define SCR_BLINK_STATE                 $02
 .define SCR_MODE                        $04
 
+.define CONSOLE_CMD_CHARSET1            $01
+.define CONSOLE_CMD_CHARSET2            $02
+
+.define SYSTEM_FLAG_DEFAULT             $00
+.define SYSTEM_FLAG_PREEMPTION_ENABLED  $01
+.define SYSTEM_FLAG_RSV1_ENABLED        $02
+.define SYSTEM_FLAG_RSV2_ENABLED        $04
+.define SYSTEM_FLAG_RSV3_ENABLED        $08
+.define SYSTEM_FLAG_RSV4_ENABLED        $10
+.define SYSTEM_FLAG_RSV5_ENABLED        $20
+.define SYSTEM_FLAG_RSV7_ENABLED        $40
+.define SYSTEM_FLAG_RSV8_ENABLED        $80
+
+.struct TIMER_CTRL_LIST
+    id_flag     .byte       ; Task ID (bits 0-3)  Task Flags (bit 4-7)
+    set_ticks   .word       ; time set for this timer.  
+    ticks       .word       
+    callback    .addr
+.endstruct
+
+.define TBL_MAX_TIMERS      10
+.define TBL_FLAG_MASK       $F0
+.define TBL_FLAG_FREE       $00
+.define TBL_FLAG_ONE_SHOT   $10
+.define TBL_FLAG_CONTINUOUS $20
+.define TBL_FLAG_STOPPED    $40
+.define TBL_FLAG_ACTIVE     $80
+
+.struct TASK_CTRL_BLOCK
+    id_flag     .byte       ; Task ID (bits 0-3)  Task Flags (bit 4-7) 
+    type_pri    .byte       ; Task Type and Priority
+    areg        .byte       ; saved a register
+    xreg        .byte       ; saved x RAM
+    yreg        .byte       ; saved y register
+    streg       .byte       ; saved status register
+    sp          .byte       ; Location of stack pointer
+    resv_1      .byte       ; One byte reserved to align WORD boundary
+    addr        .addr       ; return address from interrupt
+    info        .addr       ; pointer to more detailed task info 
+.endstruct
+
+.define MAX_TASKS           10
+.define TCB_FLAG_MASK       $F0
+.define TCB_ID_MASK         $0F
+.define TCB_FLAG_FREE       $00
+.define TCB_FLAG_RUN        $10
+.define TCB_FLAG_STOPPED    $20
+.define TCB_FLAG_WAIT       $40
+.define TCB_FLAG_RSV_1      $80
+
+.define TCB_TYPE_MASK       $F0
+.define TCB_PRI_MASK        $0F
+.define TCB_TYPE_PROCESS    $10
+.define TCB_TYPE_TIMER      $20
+.define TCB_TYPE_EVENT      $40
+.define TCB_TYPE_RSV        $80
+
+.define MAX_MUTEX           10      ; Max # of mutex handlers 
+.define MUTEX_FREE          $AA     ; 
+.define MUTEX_UNLOCKED      $FF
+
+; Reserved kernel subsysgtem mutex cells 
+.define MUTEX_CORE_ID       0       ; kernel core subsystem mutex ID
+.define MUTEX_DM_ID         1       ; kernel device manager subsysgtem mutex ID
+.define MUTEX_TIMER_ID      2       ; kernel timer subsystem mutex
+
+.define MAX_EVENTS          10      ; Maximum # of events; Events queue and 
+
+.define KERNEL_LOG_SIZE     $200    ; Size of the kernel in memory binary logger
+
 .define KERR_NONE            $00
 .define KERR_NO_RESOURCES    $F0      
+
+.if .defined(DFLT_PREEMPT_ON)
+.define DEFAULT_PREEMPT_STATE    $01
+.else
+.define DEFAULT_PREEMPT_STATE    $00
+.endif
 
 ; Formula for setting the Timer
 ; Cycles = delay * system clock

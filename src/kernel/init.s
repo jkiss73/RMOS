@@ -14,6 +14,50 @@
 ; in the root directory of this source tree.
 ; ******************************************************************************************************************
 
+
+
+.macro tcb_set_addr task_addr
+        lda #<task_addr
+        sta zpTaskControlList + TASK_CTRL_BLOCK::addr,x
+        lda #>task_addr
+        sta zpTaskControlList + TASK_CTRL_BLOCK::addr+1,x
+.endmacro
+
+
+; ****************************************************************
+; macro PRINT_INIT_PROGRESS ()
+; Description : Prints a character indicating progress during 
+;        initialization 
+;                     
+; params    None
+;           
+; Returns : none 
+; ****************************************************************
+.macro PRINT_INIT_PROGRESS
+   lda #'.'
+   jsr syscall_put_char
+.endmacro
+
+
+; ****************************************************************
+; macro PRINT_INIT_PROGRESS ()
+; Description : Prints a character indicating progress during 
+;        initialization 
+;                     
+; params    None
+;           
+; Returns : none 
+; ****************************************************************
+.macro PRINT_INIT_NEXT_LINE
+    ldy #$00
+    lda cursor_row
+    tax
+    inx
+    jsr syscall_setxy
+
+.endmacro
+
+
 ; ******************************************************************************************************************
 ; SEGMENT : INIT
 ;
@@ -99,6 +143,8 @@ init_zp
     ldy #>starting_msg
     jsr PrintAsciiZ
 
+    PRINT_INIT_PROGRESS
+
 
 ; Main system interrupt is CIA #1, timer 1 set to 1/60hz 
 ; TODO - For PAL system, will need additional logic
@@ -115,8 +161,30 @@ init_sys_interrupt:
 	and #$80        ;mask TOD 
 	ora #$11        ;enable timer1 %00010001
 	sta cia1cra
-   
-  
+ 
+    PRINT_INIT_PROGRESS
+
+    jsr core_init
+
+    PRINT_INIT_PROGRESS         
+
+    PRINT_INIT_NEXT_LINE
+
+
+    ; Set default ISR preemption state
+    lda #DEFAULT_PREEMPT_STATE
+    sta zpPreemptionEnabled
+    beq kernel_main
+
+    ; Setup the System Flags
+    lda SYSTEM_FLAG_PREEMPTION_ENABLED
+    sta zpSystemFlags
+
+
+    ldx #<sched_preempt_msg
+    ldy #>sched_preempt_msg
+    jsr PrintAsciiZ
+
 ; Main Kernel task
 kernel_main:
 
@@ -126,6 +194,36 @@ kernel_main:
     lda #blink_rate
     sta blink_cnt
 
+    ; Setup Kernel Task
+
+    lda #$00
+    jsr task_get_tcb_array_index
+    jsr tcb_set_flag_run
+    tcb_set_addr kernel_task
+
+    lda #dflt_stack_addr
+    sta zpTaskControlList + TASK_CTRL_BLOCK::sp,x
+  
+    ldx #<shelldos_task_init
+    ldy #>shelldos_task_init
+    jsr PrintAsciiZ
+
+; Create/Spawn task 1, System Startup/Shell  
+  
+    lda #$FF
+    tax
+    txs
+ 
+    lda #$01
+    sta z:current_task_idx
+    jsr task_get_tcb_array_index
+    txa
+    sta z:current_tcb_array_idx
+    jsr tcb_set_flag_run
+
+    lda #$FF
+    sta zpTaskControlList + TASK_CTRL_BLOCK::sp,x
+
     ldx #<ready_msg
     ldy #>ready_msg
     jsr PrintAsciiZ
@@ -133,10 +231,59 @@ kernel_main:
     ; Kernel Ready
     ENABLE_INTERRUPTS
 
-kernel_top:
-    jsr kernel_task
+    jmp SystemShellAddr
 
-    ; Should never get here but if it does, just loop back to the kernel task. 
-    jmp kernel_top
 
+; params - x - tcb index
+; uses a,x
+tcb_set_flag_run:
+   lda zpTaskControlList + TASK_CTRL_BLOCK::id_flag,x
+   ora #TCB_FLAG_RUN
+   sta zpTaskControlList + TASK_CTRL_BLOCK::id_flag,x
+   rts
+
+tcb_set_flag_wait:
+   lda zpTaskControlList + TASK_CTRL_BLOCK::id_flag,x
+   ora #TCB_FLAG_WAIT
+   sta zpTaskControlList + TASK_CTRL_BLOCK::id_flag,x
+   rts
+
+tcb_set_flag_stopped:
+   lda zpTaskControlList + TASK_CTRL_BLOCK::id_flag,x
+   ora #TCB_FLAG_STOPPED
+   sta zpTaskControlList + TASK_CTRL_BLOCK::id_flag,x
+   rts
+
+
+
+; 
+; params  a - 
+; uses a,x,y
+; returns x = array index.
+task_get_tcb_array_index:
+;
+;   task_get_cnt = a
+;   x = 0
+; while (task_get_cnt != 0) {
+;  x+= sizeof(TASK_CTRL_BLOCK)
+;  dec task_get_cnt
+; }
+; return (x);
+    tay 
+    ldx #$00
+@loop_top:     
+    tya
+    cmp #$00
+    beq @loop_done
+
+    txa
+    cld
+    clc
+    adc #.sizeof(TASK_CTRL_BLOCK)
+    tax
+    
+    dey
+    jmp @loop_top
+@loop_done:
+   rts  
 

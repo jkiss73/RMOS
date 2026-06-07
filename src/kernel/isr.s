@@ -23,12 +23,16 @@
 ; Params    : none
 ; Returns : none
 ; ****************************************************************
+.if 1
 scheduler
     ; TODO - Assumption, the only register that will be used in all interrupt handlers is the Accumulator
     ;        except for the context switch handler which uses all registers.    
 
     ; Save the current state of the Accumlator
-    sta z:isr_temp_a 
+    sta z:sched_temp_a 
+
+    lda #$00 
+    sta z:isr_pending_cs
 
 isr_check_interrupt_status:
 
@@ -121,6 +125,15 @@ isr_timer_B_done:
      jmp isr_next_cia1_interrupt
      
 isr_timer_A:
+    ; If preemption is disabled then do not enable the 
+    ; context switch flag. 
+    lda zpPreemptionEnabled
+    cmp #0
+    beq :+
+
+    lda #$01
+    sta z:isr_pending_cs
+:
 
 @update_kb_rate:
     lda kb_delay
@@ -142,10 +155,309 @@ isr_timer_A:
 isr_timer_A_done:  
 
 isr_exit:
+    lda z:isr_pending_cs
+    cmp #$0
+    bne @isr_context_switch
  
-    lda z:isr_temp_a 
+    lda z:sched_temp_a 
     rti
 
+@isr_context_switch:
+    ; Save current task registers 
+    txa         ; Store the x register onto the stack
+ 	sta z:sched_temp_x
+
+    lda current_tcb_array_idx
+    tax
+    
+    lda z:sched_temp_a
+    sta zpTaskControlList + TASK_CTRL_BLOCK::areg,x
+    
+    lda z:sched_temp_x
+    sta zpTaskControlList + TASK_CTRL_BLOCK::xreg,x
+    
+    tya
+    sta zpTaskControlList + TASK_CTRL_BLOCK::yreg,x
+    
+    pla
+    sta zpTaskControlList + TASK_CTRL_BLOCK::streg,x
+
+    pla 
+    sta zpTaskControlList + TASK_CTRL_BLOCK::addr,x
+    
+    pla
+    sta zpTaskControlList + TASK_CTRL_BLOCK::addr+1,x
+
+; ****************************************************************
+; public context_switch_user_entry ()
+;
+; Description : user syscall yield jumps here for a context switch. 
+;
+; params    none
+;
+; Returns : none   
+; ****************************************************************
+ context_switch_user_entry:
+    ; ***************************************************
+    ; Save the current stack pointer to the tcb instance
+    ; ***************************************************
+    tsx                     ; Get the current stack pointer
+    txa 
+    pha                     ; push the value to the stack
+
+    ; Get the tcb index and store it to it's TCB instance
+    lda current_tcb_array_idx
+    tax
+    pla                     ; pop stack pointer off stack 
+    sta zpTaskControlList + TASK_CTRL_BLOCK::sp,x
+    
+; Simple Round Robin Scheduler
+; TODO - This loop will be endless (ISR will be stuck) if all tasks (including task 0) are not set to the run state
+;
+; do{
+;
+; if (current_task_idx > MAX_TASKS) 
+;     current_task_idx = 0
+; else
+;      current_task_idx++
+; 
+; x = task_get_tcb_array_index
+; 
+; while(zpTaskControlList[x].id_flag & TCB_FLAG_RUN != TCB_FLAG_RUN)
+;
+; sched_temp = zpTaskControlList[x].sp
+; current_tcb_array_idx = x
+; ***** 
+
+sched_top:
+    lda z:current_task_idx
+    cmp #MAX_TASKS-1
+    beq set_top_context
+
+    inc z:current_task_idx
+    lda z:current_task_idx
+    jmp chk_context
+
+set_top_context:  
+    lda #$0
+    sta z:current_task_idx
+
+chk_context:
+    jsr task_get_tcb_array_index
+
+    lda zpTaskControlList + TASK_CTRL_BLOCK::id_flag,x
+    and #TCB_FLAG_RUN
+    beq sched_top
+
+next_context:
+    
+    lda zpTaskControlList + TASK_CTRL_BLOCK::sp,x
+    sta z:sched_temp_x
+    
+    txa
+    sta z:current_tcb_array_idx
+    
+    
+    ;restore switched task context registers     
+  
+    lda z:sched_temp_x
+    tax
+    txs
+
+    lda current_tcb_array_idx
+    tax
+    
+    ; Retreive the high byte of the return address and push it onto the stack
+    lda zpTaskControlList + TASK_CTRL_BLOCK::addr+1,x
+    pha
+    
+    ; Retreive the low byte of the return address and push it onto the stack
+    lda zpTaskControlList + TASK_CTRL_BLOCK::addr,x
+    pha
+
+    ; Get the stored status register and push it onto the stack
+    lda zpTaskControlList + TASK_CTRL_BLOCK::streg,x
+    pha
+    
+
+    ; Get the stored a register and push it onto the stack
+    lda zpTaskControlList + TASK_CTRL_BLOCK::areg,x
+    pha
+    
+    ; Get the stored x register and push it onto the stack
+    lda zpTaskControlList + TASK_CTRL_BLOCK::xreg,x
+    pha
+
+    lda zpTaskControlList + TASK_CTRL_BLOCK::yreg,x
+    tay
+    
+    pla         ; Restore the x register
+    tax
+
+    pla         ; Restore the a register
+cs_done:
+     ENABLE_INTERRUPTS
+; No this is not an error. No matter what return from an interrupt, even
+; when called from a JSR command. This accounts for a task that was 
+; preempted from the ISR and goes back to the extact state. The RTI sets 
+; the status register back which is on the CPU stack  
+     rti
+
+
+
+; -----------------------------------------------------------------------------------
+; DEBUG ISR PREEMPTIVE SCHEDULER 
+; -----------------------------------------------------------------------------------
+.else
+scheduler
+
+    ; Save the current state of the Accumlator
+    sta z:sched_temp_a 
+
+  	lda cia1icr             ; Clear CIA #1 interrupt by reading the status register
+    sta z:isr_cia1_ics      ; Store the CIA 1 status register   
+
+
+@update_kb_rate:
+    lda kb_delay
+    cmp #$00
+    beq @update_kb_rate_done
+    dec kb_delay
+@update_kb_rate_done:
+ 
+
+@isr_context_switch:
+    ; Save current task registers 
+
+    txa         ; Store the x register onto the stack
+	sta z:sched_temp_x
+
+    lda current_tcb_array_idx
+    tax
+    
+    lda z:sched_temp_a
+    sta zpTaskControlList + TASK_CTRL_BLOCK::areg,x
+    
+    lda z:sched_temp_x
+    sta zpTaskControlList + TASK_CTRL_BLOCK::xreg,x
+    
+    tya
+    sta zpTaskControlList + TASK_CTRL_BLOCK::yreg,x
+    
+    pla
+    sta zpTaskControlList + TASK_CTRL_BLOCK::streg,x
+
+    pla 
+    sta zpTaskControlList + TASK_CTRL_BLOCK::addr,x
+    
+    pla
+    sta zpTaskControlList + TASK_CTRL_BLOCK::addr+1,x
+    
+ 
+    ; ***************************************************
+    ; Save the current stack pointer to the tcb instance
+    ; ***************************************************
+    tsx                     ; Get the current stack pointer
+    txa 
+    pha                     ; push the value to the stack
+
+    ; Get the tcb index and store it to it's TCB instance
+    lda current_tcb_array_idx
+    tax
+    pla                     ; pop stack pointer off stack 
+    sta zpTaskControlList + TASK_CTRL_BLOCK::sp,x
+    
+; Simple Round Robin Scheduler
+; TODO - This loop will be endless (ISR will be stuck) if all tasks (including task 0) are not set to the run state
+;
+; do{
+;
+; if (current_task_idx > MAX_TASKS) 
+;     current_task_idx = 0
+; else
+;      current_task_idx++
+; 
+; x = task_get_tcb_array_index
+; 
+; while(zpTaskControlList[x].id_flag & TCB_FLAG_RUN != TCB_FLAG_RUN)
+;
+; sched_temp = zpTaskControlList[x].sp
+; current_tcb_array_idx = x
+; ***** 
+
+@sched_top:
+    lda z:current_task_idx
+    cmp #MAX_TASKS-1
+    beq @set_top_context
+
+    inc z:current_task_idx
+    lda z:current_task_idx
+    jmp @chk_context
+
+@set_top_context:  
+    lda #$0
+    sta z:current_task_idx
+
+@chk_context:
+    jsr task_get_tcb_array_index
+
+    lda zpTaskControlList + TASK_CTRL_BLOCK::id_flag,x
+    and #TCB_FLAG_RUN
+    beq @sched_top
+
+@set_next_context:
+    
+    lda zpTaskControlList + TASK_CTRL_BLOCK::sp,x
+    sta z:sched_temp_x
+    
+    txa
+    sta z:current_tcb_array_idx
+    
+    
+    ;restore switched task context registers     
+  
+    lda z:sched_temp_x
+    tax
+    txs
+
+    lda current_tcb_array_idx
+    tax
+    
+    ; Retreive the high byte of the return address and push it onto the stack
+    lda zpTaskControlList + TASK_CTRL_BLOCK::addr+1,x
+    pha
+    
+    ; Retreive the low byte of the return address and push it onto the stack
+    lda zpTaskControlList + TASK_CTRL_BLOCK::addr,x
+    pha
+
+    ; Get the stored status register and push it onto the stack
+    lda zpTaskControlList + TASK_CTRL_BLOCK::streg,x
+    pha
+    
+
+    ; Get the stored a register and push it onto the stack
+    lda zpTaskControlList + TASK_CTRL_BLOCK::areg,x
+    pha
+    
+    ; Get the stored x register and push it onto the stack
+    lda zpTaskControlList + TASK_CTRL_BLOCK::xreg,x
+    pha
+
+    lda zpTaskControlList + TASK_CTRL_BLOCK::yreg,x
+    tay
+    
+    pla         ; Restore the x register
+    tax
+
+    pla         ; Restore the a register
+
+isr_context_switch_done:    
+
+     
+isr_done:
+     rti
+.endif
 
 .segment "ISR"
 

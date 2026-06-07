@@ -4,3 +4,14 @@ Release v0.1.0 - Boot strap kernel for target system C64
     - Simple console input/output
     - Kernel task captures keyboard input and puts it to the screen
     - Multi source interrupt handler - handles only CIA Timer A   
+
+Release v0.2.0 - Kernel multitasking support, C64 applications and libraries
+    - Added kernel multitasking and preemptive scheduler
+    - Added example rom for C64, replaces BASIC ROM
+    - Added support for C Applications
+    - C Library with basic functions for C64 applications
+    - Kernel mutex subsystem with libc syscall for C applications
+    - Updated build system to build libraries and applications
+    - Autogeneration of C and ASM header files for direct calls into kernel
+     
+

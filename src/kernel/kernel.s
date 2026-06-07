@@ -18,6 +18,7 @@
 .include "vars.s"
 .include "const.s"
 .include "drivers.s"
+.include "core.s"
 .include "kernel_task.s"
 .include "init.s"
 .include "isr.s"

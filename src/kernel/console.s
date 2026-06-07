@@ -148,6 +148,38 @@ PrintAsciiZ:
 .endproc
 
 ; ****************************************************************
+; public syscall_console_ctrl(areg cmd )
+; Description : Console driver interface 
+; params    cmd (CHARSET1, CHARSET2)
+;           
+; Returns : TRUE if successful
+; ****************************************************************
+.proc syscall_console_ctrl : near
+
+    cmp #CONSOLE_CMD_CHARSET1
+    bne :+
+    ; TODO Fix by using a define
+    lda #$15
+    sta $D018
+    jmp console_ctrl_done
+:
+    cmp #CONSOLE_CMD_CHARSET2
+    bne :+
+    ; TODO Fix by using a defines
+    lda #$17
+    sta $D018
+    jmp console_ctrl_done
+
+:   ; unknown command 
+    lda #$00
+    rts
+console_ctrl_done:
+    lda #$01
+    rts
+.endproc
+
+
+; ****************************************************************
 ; public console_init()
 ; Description : Initialize the console driver 
 ; Returns : None

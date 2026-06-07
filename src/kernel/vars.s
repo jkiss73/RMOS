@@ -27,7 +27,11 @@ zpResv                  .res 9  ; TODO Remove - memory used for testing only
 system_timer            .res 2  ; 16bit System Timer Count
 isr_cia1_ics            .res 1  ; CIA #1 current ISR state. 
 isr_cia1_ics_cnt        .res 1  ;
-isr_temp_a              .res 1  ; ISR a register storage
+isr_pending_cs          .res 1  ; ISR flag to process a context switch (preemption)
+sched_temp_a            .res 1  ; Used by the ISR scheduler to temporarly store the a-reg
+sched_temp_x            .res 1  ; Used by the ISR scheduler to temporarly store the x-reg
+sched_temp_st           .res 1  ; NOT USED
+
 
 ; CONSOLE DRIVER ZERO PAGE
 scr_color_ptr	        .res 2  ; Screen color map row pointer
@@ -35,6 +39,15 @@ scr_ptr	                .res 2  ; Screen row pointer
 msg_ptr                 .res 2  ; Pointer to current string printed to screen
 kb_char_map_ptr         .res 2  ; Current input character map pointer
 console_rsv             .res 1  ; 
+
+current_task_idx        .res 1  ; Current Task Control Block Index
+current_tcb_array_idx   .res 1  ; Current TCB Array Index. 
+zpTaskControlList       .res .sizeof(TASK_CTRL_BLOCK) * MAX_TASKS
+zpTaskQueue             .res MAX_TASKS  
+zpTaskQueueInput        .res 1  ; Task Queue Input Ptr
+zpTaskQueueOutput       .res 1  ; Task Queue Output Ptr
+zpPreemptionEnabled     .res 1  ; ISR preemption flag (Enabled or Disabled)
+zpSystemFlags           .res 1  ; System components are enabled/disabled   
 
 ; ******************************************************************************************************************
 ; SEGMENT : KVAR
@@ -64,5 +77,12 @@ kb_buffer               .res 1  ; Keyboard input buffer
 ; CONSOLE DRIVER ZERO PAGE
 kb_delay                .res 1  ; Keyboard type rate delay
 
+
+
+task_index              .res 1   ;Used to initialize the TCB
+kvMutexList             .res MAX_MUTEX
+kvEventQueue            .res MAX_EVENTS
+kvEventQueueInput       .res 1  ; Event Queue Input Ptr
+kvEventQueueOutput      .res 1  ; Event Queue Output Ptr
 
 

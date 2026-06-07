@@ -1,26 +1,35 @@
 ; ******************************************************************************************************************
-; File : kernel_task.s
+; File : system.s
 ;
-; Description: Kernel task  
+; Description: Setup 6510 jump table   
 ;
 ; Segments:
-;       CORE         
+;      SYSTEM         - Kernel system level functions
 ;
 ; Author(s) : John Kiss
 ;
-; Copyright (c) 2026-Present, John Kiss All rights reserved.
+; Copyright (c) 2025-Present, John Kiss All rights reserved.
 ; This source code is licensed under the BSD-style license found in the LICENSE file 
 ; in the root directory of this source tree.
 ; ******************************************************************************************************************
-.segment "CORE"
+;  TODO
+;       * Mutex
+;       * Device Manager
+;       * Hard Timers
+;       * Date and Time
+;       * Soft Timers
+;       * Event Manager 
 
-.proc kernel_task: near
+.segment "SYSTEM"
 
-:
-    jsr KeyboardScan
-    jsr syscall_sched_task_context_switch
-    
-    jmp :-
-
+get_next_device_number:
     rts
-.endproc
+
+OpenDevice:
+    rts
+    
+CloseDevice
+    rts
+    
+
+
