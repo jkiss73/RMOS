@@ -1,4 +1,4 @@
-# **R**etro **M**od **O**perating **S**ystem (RMOS) 
+# **R**etro-**M**od **O**perating **S**ystem (RMOS) 
 
 Multitasking, preemptive operating system for CMOS 65xx processors  
  
